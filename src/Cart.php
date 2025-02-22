@@ -81,6 +81,7 @@ class Cart
         $this->session = $session;
         $this->events = $events;
         $this->taxRate = config('cart.tax');
+
         $this->instance(self::DEFAULT_INSTANCE);
     }
 
