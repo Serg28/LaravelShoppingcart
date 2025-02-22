@@ -4,7 +4,6 @@ namespace Gloudemans\Shoppingcart;
 
 trait CanBeBought
 {
-
     /**
      * Get the identifier of the Buyable item.
      *
@@ -16,17 +15,23 @@ trait CanBeBought
     }
 
     /**
-     * Get the description or title of the Buyable item.
+     * Get the name, title or description of the Buyable item.
      *
      * @return string
      */
     public function getBuyableDescription($options = null)
     {
-        if(property_exists($this, 'name')) return $this->name;
-        if(property_exists($this, 'title')) return $this->title;
-        if(property_exists($this, 'description')) return $this->description;
+        if (($name = $this->getAttribute('name'))) {
+            return $name;
+        }
 
-        return null;
+        if (($title = $this->getAttribute('title'))) {
+            return $title;
+        }
+
+        if (($description = $this->getAttribute('description'))) {
+            return $description;
+        }
     }
 
     /**
@@ -36,8 +41,22 @@ trait CanBeBought
      */
     public function getBuyablePrice($options = null)
     {
-        if(property_exists($this, 'price')) return $this->price;
+        if (($price = $this->getAttribute('price'))) {
+            return $price;
+        }
+    }
 
-        return null;
+    /**
+     * Get the weight of the Buyable item.
+     *
+     * @return float
+     */
+    public function getBuyableWeight($options = null)
+    {
+        if (($weight = $this->getAttribute('weight'))) {
+            return $weight;
+        }
+
+        return 0;
     }
 }
