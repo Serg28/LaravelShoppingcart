@@ -7,7 +7,13 @@
 [![Latest Unstable Version](https://poser.pugx.org/bumbummen99/shoppingcart/v/unstable)](https://packagist.org/packages/bumbummen99/shoppingcart)
 [![License](https://poser.pugx.org/bumbummen99/shoppingcart/license)](https://packagist.org/packages/bumbummen99/shoppingcart)
 
-Цей репозиторій є відгалуженням [Crinsane's LaravelShoppingcart](https://github.com/Crinsane/LaravelShoppingcart) та містить додаткові незначні доповнення, сумісні з Laravel 6.
+Цей репозиторій є відгалуженням [Crinsane's LaravelShoppingcart](https://github.com/Crinsane/LaravelShoppingcart) та містить додаткові незначні доповнення, сумісні з Laravel 9, 10, 11 та 12. Приклад інтеграції можна [знайти тут](https://github.com/bumbummen99/LaravelShoppingcartDemo).
+
+## Вимоги
+
+- PHP 8.2 або вище
+- Laravel 9.x, 10.x, 11.x або 12.x
+
 
 ## Встановлення
 
@@ -21,17 +27,39 @@
 
 **Починаючи з версії 2 даного пакету з'явилася можливість впровадження залежності для впровадження екземпляра класу Кошик (Cart) до вашого контролера або іншого класу**
 
+Ви обов'язково повинні опублікувати файл `config` та ознайомитися з ним.
+
+    php artisan vendor:publish --provider="Gloudemans\Shoppingcart\ShoppingcartServiceProvider" --tag="config"
+
+Це надасть вам файл конфігурації `cart.php`, в якому ви можете вносити зміни до поведінки пакету.
+
+## Оновлення
+
+Починаючи з версії **4.2.0** цей пакет, при використанні з PostgreSQL, кодує вміст кошика в base64 перед збереженням у базу даних через [проблему зі збереженням значень, що містять нульові байти](https://github.com/bumbummen99/LaravelShoppingcart/pull/167). Будь ласка, розгляньте можливість очищення таблиці кошика, якщо ви оновлюєтесь з версії **<4.2.0** при використанні PostgreSQL.
+
 ## Огляд
 Щоб детальніше ознайомитися LaravelShoppingcart, можете пройти за посиланнями
 
+* [Важлива примітка](#important-note)
 * [Застосування](#usage)
 * [Колекції](#collections)
 * [Екземпляри](#instances)
 * [Моделі](#models)
 * [База даних](#database)
+* [Калькулятори](#calculators)
 * [Винятки](#exceptions)
 * [Події](#events)
 * [Приклад](#example)
+* [Співавтори](#collaborators)
+* [Учасники](#contributors)
+
+## Важлива примітка
+
+Як і всі кошики для покупок, що розраховують ціни з урахуванням податків і знижок, цей модуль також може бути схильний до "проблеми округлення підсумків" ([*](https://stackoverflow.com/questions/13529580/magento-tax-rounding-issue)) через десяткову точність, що використовується для цін та результатів.
+Щоб уникнути (або принаймні мінімізувати) цю проблему, в пакеті Laravel shoppingcart підсумки розраховуються за методом **"за рядком"** і повертаються вже округленими на основі формату чисел, встановленого за замовчуванням у файлі конфігурації (cart.php).
+У зв'язку з цим **МИ НЕ РЕКОМЕНДУЄМО ВСТАНОВЛЮВАТИ ВИСОКУ ТОЧНІСТЬ ЗА ЗАМОВЧУВАННЯМ І ФОРМАТУВАТИ ВИХІДНИЙ РЕЗУЛЬТАТ З МЕНШОЮ КІЛЬКІСТЮ ДЕСЯТКОВИХ ЗНАКІВ**. Це може призвести до проблеми округлення.
+
+Базова ціна (ціна товару) залишається неокругленою.
 
 ## Застосування
 
@@ -244,7 +272,9 @@ Cart::discount($decimals, $decimalSeparator, $thousandSeparator);
 
 ### Cart::initial()
 
-Метод `initial()` можна застосовувати, щоб отримати розрахунок вартості усіх товарів до застосування знижки. 
+Метод `initial()` можна застосовувати, щоб отримати розрахунок вартості усіх товарів до застосування знижки та податків. 
+
+Він може бути застарілим у майбутньому. **При округленні може бути схильний до проблеми округлення**, використовуйте його обережно або використовуйте [Cart::priceTotal()](#cartpricetotal)
 
 ```php
 Cart::initial();
@@ -254,6 +284,22 @@ Cart::initial();
 
 ```php
 Cart::initial($decimals, $decimalSeparator, $thousandSeparator);
+```
+
+Ви можете задати формат чисел за замовчуванням у файлі з конфігураціями.
+
+### Cart::priceTotal()
+
+Метод `priceTotal()` можна застосовувати, щоб отримати загальну ціну всіх товарів у кошику до застосування знижки та податків. 
+
+```php
+Cart::priceTotal();
+```
+
+Метод повертає результат округлений на основі формату чисел за замовчуванням, але ви можете налаштувати його за допомогою трьох додаткових параметрів
+
+```php
+Cart::priceTotal($decimals, $decimalSeparator, $thousandSeparator);
 ```
 
 Ви можете задати формат чисел за замовчуванням у файлі з конфігураціями.
@@ -539,14 +585,64 @@ foreach(Cart::content() as $row) {
     Cart::instance('wishlist')->restore('username');
 
 ### Злиття кошиків
-Якщо ви хочете злити кошик із іншим кошиком, збереженим у базі даних, вам знадобиться викликати метод `merge($identifier)`, де `$identifier` - це ключ, який ви зазначили у методі`store`. Ви також можете визначити чи хочете ви зберегти знижку і ставку оподаткування для товарів.
+Якщо ви хочете злити кошик із іншим кошиком, збереженим у базі даних, вам знадобиться викликати метод `merge($identifier)`, де `$identifier` - це ключ, який ви зазначили у методі `store`. Ви також можете визначити чи хочете ви зберегти знижку і ставку оподаткування для товарів та чи хочете ви відправляти події "cart.added".
      
     // Merge the contents of 'savedcart' into 'username'.
-    Cart::instance('username')->merge('savedcart', $keepDiscount, $keepTaxrate, 'savedcartinstance');
+    Cart::instance('username')->merge('savedcart', $keepDiscount, $keepTaxrate, $dispatchAdd, 'savedcartinstance');
+
+### Видалення кошика
+Якщо ви хочете видалити кошик з бази даних, вам потрібно викликати метод `erase($identifier)`, де `$identifier` - це ключ, який ви зазначили у методі `store`.
+ 
+    Cart::erase('username');
+    
+    // To erase a cart switching to an instance named 'wishlist'
+    Cart::instance('wishlist')->erase('username');
+
+## Калькулятори
+
+Логіка розрахунків для пакету реалізована та визначена в класах `Calculator`. Вони реалізують контракт `Gloudemans\Shoppingcart\Contracts\Calculator` і визначають, як розраховуються та округлюються ціни. Калькулятори можна налаштувати у файлі конфігурації. Це калькулятор за замовчуванням:
+```php
+<?php
+
+namespace Gloudemans\Shoppingcart\Calculation;
+
+use Gloudemans\Shoppingcart\CartItem;
+use Gloudemans\Shoppingcart\Contracts\Calculator;
+
+class DefaultCalculator implements Calculator
+{
+    public static function getAttribute(string $attribute, CartItem $cartItem)
+    {
+        $decimals = config('cart.format.decimals', 2);
+
+        switch ($attribute) {
+            case 'discount':
+                return $cartItem->price * ($cartItem->getDiscountRate() / 100);
+            case 'tax':
+                return round($cartItem->priceTarget * ($cartItem->taxRate / 100), $decimals);
+            case 'priceTax':
+                return round($cartItem->priceTarget + $cartItem->tax, $decimals);
+            case 'discountTotal':
+                return round($cartItem->discount * $cartItem->qty, $decimals);
+            case 'priceTotal':
+                return round($cartItem->price * $cartItem->qty, $decimals);
+            case 'subtotal':
+                return max(round($cartItem->priceTotal - $cartItem->discountTotal, $decimals), 0);
+            case 'priceTarget':
+                return round(($cartItem->priceTotal - $cartItem->discountTotal) / $cartItem->qty, $decimals);
+            case 'taxTotal':
+                return round($cartItem->subtotal * ($cartItem->taxRate / 100), $decimals);
+            case 'total':
+                return round($cartItem->subtotal + $cartItem->taxTotal, $decimals);
+            default:
+                return;
+        }
+    }
+}
+
+```
 
 ## Перехоплення
-
-Пакет Кошик (Cart) видаватиме винятки/перехоплення у разі, якщо щось йде не за планом. Таким чином, вам буде простіше відлагоджувати (debug) ваш код, використовуючи пакет Кошик, або обробляти помилку за типом перехоплення. Пакети Кошика можуть видавати наступні перехоплення:
 
 | Перехоплення                    | Пояснення                                                                             |
 | ---------------------------- | ---------------------------------------------------------------------------------- |
@@ -556,15 +652,20 @@ foreach(Cart::content() as $row) {
 
 ## Події
 
-Кошик також має вбудовані події. Існує п'ять подій, які можна очікувати.
+Кошик також має вбудовані події. Існує десять подій, які можна очікувати.
 
-| Подія         | Видано                                    | Параметр                        |
-| ------------- | ---------------------------------------- | -------------------------------- |
-| cart.added    | Коли товар додано до кошика.      | `CartItem`, який було додано.   |
-| cart.updated  | Коли товар оновлено у кошику.    | `CartItem`, який було оновлено. |
-| cart.removed  | Коли товар вилучено з кошика.   | `CartItem`, який було вилучено. |
-| cart.stored   | Коли вміст кошика було збережено.   | -                                |
-| cart.restored | Коли вміст кошика було відновлено. | -                                |
+| Подія         | Видано                                    | Параметр                             |
+| ------------- | ---------------------------------------- | ------------------------------------- |
+| cart.adding   | Коли товар додається до кошика.         | `CartItem`, який додається.   |
+| cart.updating | Коли товар оновлюється у кошику.       | `CartItem`, який оновлюється. |
+| cart.removing | Коли товар вилучається з кошика.       | `CartItem`, який вилучається. |
+| cart.added    | Коли товар додано до кошика.      | `CartItem`, який було додано.        |
+| cart.updated  | Коли товар оновлено у кошику.    | `CartItem`, який було оновлено.      |
+| cart.removed  | Коли товар вилучено з кошика.   | `CartItem`, який було вилучено.      |
+| cart.merged   | Коли вміст кошика злито     | -                                     |
+| cart.stored   | Коли вміст кошика було збережено.   | -                                     |
+| cart.restored | Коли вміст кошика було відновлено. | -                                     |
+| cart.erased   | Коли вміст кошика було видалено.   | -                                     |
 
 ## Приклад
 
@@ -623,4 +724,325 @@ Cart::add('1239ad0', 'Product 2', 2, 5.95, ['size' => 'large']);
    		</tr>
    	</tfoot>
 </table>
-```
+
+## Співавтори
+
+<!-- readme: collaborators -start -->
+<table>
+<tr>
+    <td align="center">
+        <a href="https://github.com/bumbummen99">
+            <img src="https://avatars.githubusercontent.com/u/4533331?v=4" width="100;" alt="bumbummen99"/>
+            <br />
+            <sub><b>Patrick</b></sub>
+        </a>
+    </td>
+    <td align="center">
+        <a href="https://github.com/Sartoric">
+            <img src="https://avatars.githubusercontent.com/u/6607379?v=4" width="100;" alt="Sartoric"/>
+            <br />
+            <sub><b>Sartoric</b></sub>
+        </a>
+    </td></tr>
+</table>
+<!-- readme: collaborators -end -->
+
+## Учасники
+<!-- readme: contributors -start -->
+<table>
+<tr>
+    <td align="center">
+        <a href="https://github.com/bumbummen99">
+            <img src="https://avatars.githubusercontent.com/u/4533331?v=4" width="100;" alt="bumbummen99"/>
+            <br />
+            <sub><b>Patrick</b></sub>
+        </a>
+    </td>
+    <td align="center">
+        <a href="https://github.com/Crinsane">
+            <img src="https://avatars.githubusercontent.com/u/1297781?v=4" width="100;" alt="Crinsane"/>
+            <br />
+            <sub><b>Rob Gloudemans</b></sub>
+        </a>
+    </td>
+    <td align="center">
+        <a href="https://github.com/Norris1z">
+            <img src="https://avatars.githubusercontent.com/u/18237132?v=4" width="100;" alt="Norris1z"/>
+            <br />
+            <sub><b>Norris Oduro</b></sub>
+        </a>
+    </td>
+    <td align="center">
+        <a href="https://github.com/olegbespalov">
+            <img src="https://avatars.githubusercontent.com/u/5425600?v=4" width="100;" alt="olegbespalov"/>
+            <br />
+            <sub><b>Oleg Bespalov</b></sub>
+        </a>
+    </td>
+    <td align="center">
+        <a href="https://github.com/cwprogger">
+            <img src="https://avatars.githubusercontent.com/u/11742147?v=4" width="100;" alt="cwprogger"/>
+            <br />
+            <sub><b>Andrew Savchenko</b></sub>
+        </a>
+    </td>
+    <td align="center">
+        <a href="https://github.com/ChrisThompsonTLDR">
+            <img src="https://avatars.githubusercontent.com/u/348801?v=4" width="100;" alt="ChrisThompsonTLDR"/>
+            <br />
+            <sub><b>Chris Thompson</b></sub>
+        </a>
+    </td></tr>
+<tr>
+    <td align="center">
+        <a href="https://github.com/Jam-Iko">
+            <img src="https://avatars.githubusercontent.com/u/44161368?v=4" width="100;" alt="Jam-Iko"/>
+            <br />
+            <sub><b>Jam-Iko</b></sub>
+        </a>
+    </td>
+    <td align="center">
+        <a href="https://github.com/mattusik">
+            <img src="https://avatars.githubusercontent.com/u/1252223?v=4" width="100;" alt="mattusik"/>
+            <br />
+            <sub><b>Matus Rohal</b></sub>
+        </a>
+    </td>
+    <td align="center">
+        <a href="https://github.com/rakibabu">
+            <img src="https://avatars.githubusercontent.com/u/14089150?v=4" width="100;" alt="rakibabu"/>
+            <br />
+            <sub><b>Rakhal Imming</b></sub>
+        </a>
+    </td>
+    <td align="center">
+        <a href="https://github.com/tiotobing">
+            <img src="https://avatars.githubusercontent.com/u/33707075?v=4" width="100;" alt="tiotobing"/>
+            <br />
+            <sub><b>Tiotobing</b></sub>
+        </a>
+    </td>
+    <td align="center">
+        <a href="https://github.com/Sartoric">
+            <img src="https://avatars.githubusercontent.com/u/6607379?v=4" width="100;" alt="Sartoric"/>
+            <br />
+            <sub><b>Sartoric</b></sub>
+        </a>
+    </td>
+    <td align="center">
+        <a href="https://github.com/macbookandrew">
+            <img src="https://avatars.githubusercontent.com/u/784333?v=4" width="100;" alt="macbookandrew"/>
+            <br />
+            <sub><b>Andrew Minion</b></sub>
+        </a>
+    </td></tr>
+<tr>
+    <td align="center">
+        <a href="https://github.com/dtwebuk">
+            <img src="https://avatars.githubusercontent.com/u/6045378?v=4" width="100;" alt="dtwebuk"/>
+            <br />
+            <sub><b>Daniel Tomlinson</b></sub>
+        </a>
+    </td>
+    <td align="center">
+        <a href="https://github.com/tkaw220">
+            <img src="https://avatars.githubusercontent.com/u/694289?v=4" width="100;" alt="tkaw220"/>
+            <br />
+            <sub><b>Edwin Aw</b></sub>
+        </a>
+    </td>
+    <td align="center">
+        <a href="https://github.com/manojo123">
+            <img src="https://avatars.githubusercontent.com/u/20805943?v=4" width="100;" alt="manojo123"/>
+            <br />
+            <sub><b>Jorge Moura</b></sub>
+        </a>
+    </td>
+    <td align="center">
+        <a href="https://github.com/jorgejavierleon">
+            <img src="https://avatars.githubusercontent.com/u/7950376?v=4" width="100;" alt="jorgejavierleon"/>
+            <br />
+            <sub><b>Jorge Javier León</b></sub>
+        </a>
+    </td>
+    <td align="center">
+        <a href="https://github.com/geisi">
+            <img src="https://avatars.githubusercontent.com/u/10728579?v=4" width="100;" alt="geisi"/>
+            <br />
+            <sub><b>Tim Geisendörfer</b></sub>
+        </a>
+    </td>
+    <td align="center">
+        <a href="https://github.com/adamgoose">
+            <img src="https://avatars.githubusercontent.com/u/611068?v=4" width="100;" alt="adamgoose"/>
+            <br />
+            <sub><b>Adam Engebretson</b></sub>
+        </a>
+    </td></tr>
+<tr>
+    <td align="center">
+        <a href="https://github.com/andcl">
+            <img src="https://avatars.githubusercontent.com/u/8470427?v=4" width="100;" alt="andcl"/>
+            <br />
+            <sub><b>Andrés</b></sub>
+        </a>
+    </td>
+    <td align="center">
+        <a href="https://github.com/ganyicz">
+            <img src="https://avatars.githubusercontent.com/u/3823354?v=4" width="100;" alt="ganyicz"/>
+            <br />
+            <sub><b>Filip Ganyicz</b></sub>
+        </a>
+    </td>
+    <td align="center">
+        <a href="https://github.com/guysolamour">
+            <img src="https://avatars.githubusercontent.com/u/22590722?v=4" width="100;" alt="guysolamour"/>
+            <br />
+            <sub><b>Guy-roland ASSALE</b></sub>
+        </a>
+    </td>
+    <td align="center">
+        <a href="https://github.com/jackmcdade">
+            <img src="https://avatars.githubusercontent.com/u/44739?v=4" width="100;" alt="jackmcdade"/>
+            <br />
+            <sub><b>Jack McDade</b></sub>
+        </a>
+    </td>
+    <td align="center">
+        <a href="https://github.com/jeremyvaught">
+            <img src="https://avatars.githubusercontent.com/u/302304?v=4" width="100;" alt="jeremyvaught"/>
+            <br />
+            <sub><b>Jeremy Vaught</b></sub>
+        </a>
+    </td>
+    <td align="center">
+        <a href="https://github.com/jmarkese">
+            <img src="https://avatars.githubusercontent.com/u/1827586?v=4" width="100;" alt="jmarkese"/>
+            <br />
+            <sub><b>John Markese</b></sub>
+        </a>
+    </td></tr>
+<tr>
+    <td align="center">
+        <a href="https://github.com/nexxai">
+            <img src="https://avatars.githubusercontent.com/u/4316564?v=4" width="100;" alt="nexxai"/>
+            <br />
+            <sub><b>JT Smith</b></sub>
+        </a>
+    </td>
+    <td align="center">
+        <a href="https://github.com/mrabbani">
+            <img src="https://avatars.githubusercontent.com/u/4253979?v=4" width="100;" alt="mrabbani"/>
+            <br />
+            <sub><b>Mahbub Rabbani</b></sub>
+        </a>
+    </td>
+    <td align="center">
+        <a href="https://github.com/mauriciv">
+            <img src="https://avatars.githubusercontent.com/u/12043163?v=4" width="100;" alt="mauriciv"/>
+            <br />
+            <sub><b>Mauricio Vera</b></sub>
+        </a>
+    </td>
+    <td align="center">
+        <a href="https://github.com/xpundel">
+            <img src="https://avatars.githubusercontent.com/u/1384653?v=4" width="100;" alt="xpundel"/>
+            <br />
+            <sub><b>Mikhail Lisnyak</b></sub>
+        </a>
+    </td>
+    <td align="center">
+        <a href="https://github.com/absemetov">
+            <img src="https://avatars.githubusercontent.com/u/735924?v=4" width="100;" alt="absemetov"/>
+            <br />
+            <sub><b>Nadir Absemetov</b></sub>
+        </a>
+    </td>
+    <td align="center">
+        <a href="https://github.com/nielsiano">
+            <img src="https://avatars.githubusercontent.com/u/947684?v=4" width="100;" alt="nielsiano"/>
+            <br />
+            <sub><b>Niels Stampe</b></sub>
+        </a>
+    </td></tr>
+<tr>
+    <td align="center">
+        <a href="https://github.com/4ilo">
+            <img src="https://avatars.githubusercontent.com/u/15938739?v=4" width="100;" alt="4ilo"/>
+            <br />
+            <sub><b>Olivier</b></sub>
+        </a>
+    </td>
+    <td align="center">
+        <a href="https://github.com/PazkaL">
+            <img src="https://avatars.githubusercontent.com/u/1322192?v=4" width="100;" alt="PazkaL"/>
+            <br />
+            <sub><b>Pascal Kousbroek</b></sub>
+        </a>
+    </td>
+    <td align="center">
+        <a href="https://github.com/quintenbuis">
+            <img src="https://avatars.githubusercontent.com/u/36452184?v=4" width="100;" alt="quintenbuis"/>
+            <br />
+            <sub><b>Quinten Buis</b></sub>
+        </a>
+    </td>
+    <td align="center">
+        <a href="https://github.com/publiux">
+            <img src="https://avatars.githubusercontent.com/u/2847188?v=4" width="100;" alt="publiux"/>
+            <br />
+            <sub><b>Raul Ruiz</b></sub>
+        </a>
+    </td>
+    <td align="center">
+        <a href="https://github.com/royduin">
+            <img src="https://avatars.githubusercontent.com/u/1703233?v=4" width="100;" alt="royduin"/>
+            <br />
+            <sub><b>Roy Duineveld</b></sub>
+        </a>
+    </td>
+    <td align="center">
+        <a href="https://github.com/CaddyDz">
+            <img src="https://avatars.githubusercontent.com/u/13698160?v=4" width="100;" alt="CaddyDz"/>
+            <br />
+            <sub><b>Salim Djerbouh</b></sub>
+        </a>
+    </td></tr>
+<tr>
+    <td align="center">
+        <a href="https://github.com/pendalff">
+            <img src="https://avatars.githubusercontent.com/u/236587?v=4" width="100;" alt="pendalff"/>
+            <br />
+            <sub><b>Fukalov Sem</b></sub>
+        </a>
+    </td>
+    <td align="center">
+        <a href="https://github.com/sobhanatar">
+            <img src="https://avatars.githubusercontent.com/u/1507325?v=4" width="100;" alt="sobhanatar"/>
+            <br />
+            <sub><b>Sobhan Atar</b></sub>
+        </a>
+    </td>
+    <td align="center">
+        <a href="https://github.com/mightyteja">
+            <img src="https://avatars.githubusercontent.com/u/2662727?v=4" width="100;" alt="mightyteja"/>
+            <br />
+            <sub><b>Teja Babu S</b></sub>
+        </a>
+    </td>
+    <td align="center">
+        <a href="https://github.com/kekenec">
+            <img src="https://avatars.githubusercontent.com/u/11806874?v=4" width="100;" alt="kekenec"/>
+            <br />
+            <sub><b>Kekenec</b></sub>
+        </a>
+    </td>
+    <td align="center">
+        <a href="https://github.com/sasin91">
+            <img src="https://avatars.githubusercontent.com/u/808722?v=4" width="100;" alt="sasin91"/>
+            <br />
+            <sub><b>Sasin91</b></sub>
+        </a>
+    </td></tr>
+</table>
+<!-- readme: contributors -end -->
