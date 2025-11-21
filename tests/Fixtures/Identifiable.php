@@ -2,7 +2,7 @@
 
 namespace Gloudemans\Tests\Shoppingcart\Fixtures;
 
-use Gloudemans\Shoppingcart\Contracts\InstanceIdentifier;
+use Linecore\Shoppingcart\Contracts\InstanceIdentifier;
 
 class Identifiable implements InstanceIdentifier
 {

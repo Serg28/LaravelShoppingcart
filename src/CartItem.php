@@ -1,11 +1,11 @@
 <?php
 
-namespace Gloudemans\Shoppingcart;
+namespace Linecore\Shoppingcart;
 
-use Gloudemans\Shoppingcart\Calculation\DefaultCalculator;
-use Gloudemans\Shoppingcart\Contracts\Buyable;
-use Gloudemans\Shoppingcart\Contracts\Calculator;
-use Gloudemans\Shoppingcart\Exceptions\InvalidCalculatorException;
+use Linecore\Shoppingcart\Calculation\DefaultCalculator;
+use Linecore\Shoppingcart\Contracts\Buyable;
+use Linecore\Shoppingcart\Contracts\Calculator;
+use Linecore\Shoppingcart\Exceptions\InvalidCalculatorException;
 use Illuminate\Contracts\Support\Arrayable;
 use Illuminate\Contracts\Support\Jsonable;
 use Illuminate\Support\Arr;
@@ -307,7 +307,7 @@ class CartItem implements Arrayable, Jsonable
     /**
      * Update the cart item from a Buyable.
      *
-     * @param \Gloudemans\Shoppingcart\Contracts\Buyable $item
+     * @param \Linecore\Shoppingcart\Contracts\Buyable $item
      *
      * @return void
      */
@@ -342,7 +342,7 @@ class CartItem implements Arrayable, Jsonable
      *
      * @param mixed $model
      *
-     * @return \Gloudemans\Shoppingcart\CartItem
+     * @return \Linecore\Shoppingcart\CartItem
      */
     public function associate($model)
     {
@@ -356,7 +356,7 @@ class CartItem implements Arrayable, Jsonable
      *
      * @param int|float $taxRate
      *
-     * @return \Gloudemans\Shoppingcart\CartItem
+     * @return \Linecore\Shoppingcart\CartItem
      */
     public function setTaxRate($taxRate)
     {
@@ -370,7 +370,7 @@ class CartItem implements Arrayable, Jsonable
      *
      * @param int|float $discountRate
      *
-     * @return \Gloudemans\Shoppingcart\CartItem
+     * @return \Linecore\Shoppingcart\CartItem
      */
     public function setDiscountRate($discountRate)
     {
@@ -384,7 +384,7 @@ class CartItem implements Arrayable, Jsonable
      *
      * @param null|string $instance
      *
-     * @return \Gloudemans\Shoppingcart\CartItem
+     * @return \Linecore\Shoppingcart\CartItem
      */
     public function setInstance($instance)
     {
@@ -436,10 +436,10 @@ class CartItem implements Arrayable, Jsonable
     /**
      * Create a new instance from a Buyable.
      *
-     * @param \Gloudemans\Shoppingcart\Contracts\Buyable $item
+     * @param \Linecore\Shoppingcart\Contracts\Buyable $item
      * @param array                                      $options
      *
-     * @return \Gloudemans\Shoppingcart\CartItem
+     * @return \Linecore\Shoppingcart\CartItem
      */
     public static function fromBuyable(Buyable $item, array $options = [])
     {
@@ -451,7 +451,7 @@ class CartItem implements Arrayable, Jsonable
      *
      * @param array $attributes
      *
-     * @return \Gloudemans\Shoppingcart\CartItem
+     * @return \Linecore\Shoppingcart\CartItem
      */
     public static function fromArray(array $attributes)
     {
@@ -468,7 +468,7 @@ class CartItem implements Arrayable, Jsonable
      * @param float      $price
      * @param array      $options
      *
-     * @return \Gloudemans\Shoppingcart\CartItem
+     * @return \Linecore\Shoppingcart\CartItem
      */
     public static function fromAttributes($id, $name, $price, $weight, array $options = [])
     {

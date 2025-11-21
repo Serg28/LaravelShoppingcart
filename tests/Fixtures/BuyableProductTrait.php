@@ -2,7 +2,7 @@
 
 namespace Gloudemans\Tests\Shoppingcart\Fixtures;
 
-use Gloudemans\Shoppingcart\Contracts\Buyable;
+use Linecore\Shoppingcart\Contracts\Buyable;
 use Illuminate\Database\Eloquent\Model;
 
 class BuyableProductTrait extends Model implements Buyable

@@ -1,6 +1,6 @@
 <?php
 
-namespace Gloudemans\Shoppingcart\Contracts;
+namespace Linecore\Shoppingcart\Contracts;
 
 interface InstanceIdentifier
 {

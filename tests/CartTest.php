@@ -3,10 +3,10 @@
 namespace Gloudemans\Tests\Shoppingcart;
 
 use Carbon\Carbon;
-use Gloudemans\Shoppingcart\Calculation\GrossPrice;
-use Gloudemans\Shoppingcart\Cart;
-use Gloudemans\Shoppingcart\CartItem;
-use Gloudemans\Shoppingcart\ShoppingcartServiceProvider;
+use Linecore\Shoppingcart\Calculation\GrossPrice;
+use Linecore\Shoppingcart\Cart;
+use Linecore\Shoppingcart\CartItem;
+use Linecore\Shoppingcart\ShoppingcartServiceProvider;
 use Gloudemans\Tests\Shoppingcart\Fixtures\BuyableProduct;
 use Gloudemans\Tests\Shoppingcart\Fixtures\BuyableProductTrait;
 use Gloudemans\Tests\Shoppingcart\Fixtures\Identifiable;

@@ -12,7 +12,7 @@ return [
     |
     */
 
-    'calculator' => \Gloudemans\Shoppingcart\Calculation\DefaultCalculator::class,
+    'calculator' => \Linecore\Shoppingcart\Calculation\DefaultCalculator::class,
 
     /*
     |--------------------------------------------------------------------------

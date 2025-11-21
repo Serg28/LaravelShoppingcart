@@ -1,6 +1,6 @@
 <?php
 
-namespace Gloudemans\Shoppingcart;
+namespace Linecore\Shoppingcart;
 
 use Illuminate\Auth\Events\Logout;
 use Illuminate\Session\SessionManager;
@@ -15,7 +15,9 @@ class ShoppingcartServiceProvider extends ServiceProvider
      */
     public function register()
     {
-        $this->app->bind('cart', 'Gloudemans\Shoppingcart\Cart');
+        $this->app->singleton('cart', function ($app) {
+            return new Cart($app['session'], $app['events']);
+        });
 
         $config = __DIR__.'/Config/cart.php';
         $this->mergeConfigFrom($config, 'cart');
@@ -31,5 +33,17 @@ class ShoppingcartServiceProvider extends ServiceProvider
         $this->publishes([
             realpath(__DIR__.'/Database/migrations') => $this->app->databasePath().'/migrations',
         ], 'migrations');
+    }
+
+    /**
+     * Bootstrap the application services.
+     *
+     * @return void
+     */
+    public function boot()
+    {
+        // Регистрируем алиас фасада Cart
+        $loader = \Illuminate\Foundation\AliasLoader::getInstance();
+        $loader->alias('Cart', \Linecore\Shoppingcart\Facades\Cart::class);
     }
 }

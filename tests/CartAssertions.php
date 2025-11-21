@@ -2,7 +2,7 @@
 
 namespace Gloudemans\Tests\Shoppingcart;
 
-use Gloudemans\Shoppingcart\Cart;
+use Linecore\Shoppingcart\Cart;
 use PHPUnit\Framework\Assert as PHPUnit;
 
 trait CartAssertions
